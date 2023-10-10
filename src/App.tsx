@@ -1,26 +1,54 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import './App.css'
+import { RouterProvider, createBrowserRouter } from 'react-router-dom'
+import Entry from './Entry'
+import Menu from './Menu'
+import getTelegramMiniApp, { ThemeParams } from './TelegramMiniApp'
+import { ThemeProvider, createTheme } from '@mui/material'
+import { useMemo, useState } from 'react'
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+export default function App() {
+  const tgMiniApp = getTelegramMiniApp()
+  tgMiniApp.ready()
+
+  const [mode, setMode] = useState<'light' | 'dark'>(tgMiniApp.colorScheme)
+  const [tgTheme, setTgTheme] = useState<ThemeParams>(tgMiniApp.themeParams)
+
+  const defaultTheme = createTheme({ palette: { mode }})
+
+  const theme = useMemo(
+    () => createTheme({
+      palette: {
+        primary: {
+          main: tgTheme.button_color ? tgTheme.button_color : defaultTheme.palette.primary.main
+        },
+        text: {
+          primary: tgTheme.text_color ? tgTheme.text_color : defaultTheme.palette.text.primary
+        },
+        background: {
+          default: tgTheme.secondary_bg_color ? tgTheme.secondary_bg_color : defaultTheme.palette.background.default,
+          paper: tgTheme.bg_color ? tgTheme.bg_color : defaultTheme.palette.background.paper
+        },
+        mode
+      }
+    }),
+    [mode, tgTheme, defaultTheme]
+  )
+
+  tgMiniApp.onEvent('themeChanged', () => {
+    setMode(tgMiniApp.colorScheme)
+    setTgTheme(tgMiniApp.themeParams)
+  })
+
+  const router = createBrowserRouter([
+    {
+      path: '/',
+      element: <Entry />
+    },
+    {
+      path: '/menu',
+      element: <Menu />
+    }
+  ])
+
+  return <ThemeProvider theme={theme}><RouterProvider router={router} /></ThemeProvider>
 }
-
-export default App;
